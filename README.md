@@ -53,3 +53,19 @@ python3 main.py
 ```
 
 The bot should now be running and ready to accept commands.
+
+## Docker Setup for Telegram Bot
+
+### Step 1: Build the Docker image
+
+Build the Docker image using the following command:
+
+```bash
+docker build -t telegram-bot .
+```
+### Step 2: Run the Docker container
+Run the bot inside a Docker container, passing the required environment variables:
+
+```bash
+docker run -e BOT_TOKEN=<your-telegram-bot-token> -e CHAT_ID=<your-chat-id> -e COOKIES=<your-cookies> -e CSRF_TOKEN=<your-csrf-token> telegram-bot
+```
