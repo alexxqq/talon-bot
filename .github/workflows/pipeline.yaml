@@ -1,0 +1,29 @@
+name: deployBot
+
+'on': 
+  workflow_call: null 
+  workflow_dispatch: null 
+  push: 
+    branches: 
+      - master 
+jobs: 
+  DeployBot: 
+    name: Deploying Bot 
+    runs-on: ubuntu-latest 
+    steps: 
+      - name: Git checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Connect to instance and deploy
+        env: 
+          SSH_KEY: ${{ secrets.KEY_SSH }} 
+          HOST_NAME: ${{ secrets.HOST }}
+        run: |
+          echo $SSH_KEY | tr ' ' '\n' | base64 --decode > key1.pem
+          chmod 400 key1.pem
+          ssh -o StrictHostKeyChecking=no -i "key1.pem" ubuntu@$HOST_NAME 'source ~/deploy.sh'
