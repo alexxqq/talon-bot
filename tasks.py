@@ -7,7 +7,6 @@ from logger_config import logger
 import requests
 import time
 
-url_template = "https://eq.hsc.gov.ua/site/stepmap?chdate={chdate}&question_id=55"
 
 def send_telegram_message(bot_token, chat_id, message):
     """Send a message to the specified Telegram chat."""
@@ -23,7 +22,12 @@ def send_telegram_message(bot_token, chat_id, message):
         logger.error(f"Error while sending message: {e}")
 
 def process_data():
-
+    if not script_state.offices_ids:
+        message = "There are no offices selected. Please update offices, using command /update_offices"
+        logger.info(message)
+        send_telegram_message(BOT_TOKEN, CHAT_ID, message)
+        script_state.running = False
+        return
     while script_state.running:
         logger.info("Starting a new run...")
         start_date = datetime.today()
@@ -32,7 +36,7 @@ def process_data():
         while valid_days < 15:
             if not is_sunday_or_monday(start_date):
                 chdate = start_date.strftime("%Y-%m-%d")
-                url = url_template.format(chdate=chdate)
+                url = script_state.url_template.format(chdate=chdate)
 
                 try:
                     response = requests.get(url, headers=script_state.headers, verify=False)
@@ -46,7 +50,7 @@ def process_data():
                             return
                         filtered_data = [
                             entry for entry in data
-                            if entry.get('sts') in [1, 3] and entry.get('id_offices') in [98] # 127 # set regions that needed
+                            if entry.get('sts') in [1, 3] and entry.get('id_offices') in script_state.offices_ids
                         ]
 
                         if filtered_data:

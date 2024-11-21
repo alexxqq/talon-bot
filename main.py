@@ -1,4 +1,4 @@
-from commands import start_script, stop_script, script_status, update_credentials
+from commands import start_script, stop_script, script_status, update_credentials, update_offices, update_question_type
 from telegram.ext import Application, CommandHandler
 from config import BOT_TOKEN
 from telegram import Update
@@ -13,6 +13,8 @@ def main():
     application.add_handler(CommandHandler("stop_script", stop_script))
     application.add_handler(CommandHandler("script_status", script_status))
     application.add_handler(CommandHandler("update_credentials", update_credentials))
+    application.add_handler(CommandHandler("update_offices", update_offices))
+    application.add_handler(CommandHandler("update_question_type", update_question_type))
 
     application.run_polling()
 
