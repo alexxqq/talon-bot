@@ -9,6 +9,7 @@ logger = "*"
 python-telegram-bot = "*"
 python-dotenv = "*"
 urllib3 = "*"
+pymongo = "*"
 
 [dev-packages]
 

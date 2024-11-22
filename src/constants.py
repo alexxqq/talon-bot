@@ -66,3 +66,6 @@ QUESTION_MAPPING = {
     'practic': 55,
     'theory': 52
 }
+
+WAIT_TIME = 10
+FETCH_FREETIMES = False
