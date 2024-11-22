@@ -1,6 +1,6 @@
 FROM python:3.12-alpine
 
-WORKDIR /
+WORKDIR /src
 
 COPY . /
 
