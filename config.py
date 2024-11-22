@@ -3,7 +3,8 @@ import os
 
 load_dotenv()
 
-CHAT_ID = os.getenv("CHAT_ID")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-COOKIES = os.getenv("COOKIES")
-CSRF_TOKEN = os.getenv("CSRF_TOKEN")
+MONGO_PASS = os.getenv("MONGO_PASS")
+MONGO_USER = os.getenv("MONGO_USER")
+MONGO_HOST = os.getenv("MONGO_HOST")
+PAYMENT_TOKEN = os.getenv("PAYMENT_TOKEN")

@@ -1,66 +1,95 @@
+from mapping import OFFICE_MAPPING, QUESTION_MAPPING
 from telegram.ext import ContextTypes
-from globals_var import script_state
+from mongo import MongoUserManager
 from tasks import process_data
 from telegram import Update
+from utils import map_offices
 import threading
 
 async def start_script(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    
-    if not script_state.running:
-        script_state.running = True
-        await update.message.reply_text(f"Script started.\nOffice id's: {script_state.offices_ids if script_state.offices_ids else 'No id selected'}")
+    user_id = update.effective_user.id
+    username = update.effective_user.username
 
-        threading.Thread(target=process_data).start()
+    user = MongoUserManager.get_or_create_user(user_id, username)
+    if not user.get('active', None):
+        await update.message.reply_text('Use command /pay to access premium features')
     else:
-        await update.message.reply_text("Script is already running.")
+        if not user.get('running'):
+            MongoUserManager.set_running(user_id, True)
+            await update.message.reply_text(
+                f'Script started.\nOffice IDs: {user.get('offices_ids') if user.get('offices_ids') else 'No ID selected'}\nQuestion type: {user.get('question_type')}'
+            )
+            threading.Thread(target=process_data, args=(user_id,)).start()
+        else:
+            await update.message.reply_text('Script is already running.')
 
 async def stop_script(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
 
-    if script_state.running:
-        script_state.running = False
-        await update.message.reply_text("Script stopped.")
+    user = MongoUserManager.get_or_create_user(user_id, update.effective_user.username)
+
+    if user.get('running'):
+        MongoUserManager.set_running(user_id, False)
+        await update.message.reply_text('Script stopped.')
     else:
-        await update.message.reply_text("Script is not running.")
+        await update.message.reply_text('Script is not running.')
 
 async def script_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user = MongoUserManager.get_or_create_user(user_id, update.effective_user.username)
 
-    status = "running" if script_state.running else "stopped"
-    await update.message.reply_text(f"Script is currently {status}.\nOffice id's: {script_state.offices_ids if script_state.offices_ids else 'No id selected'}\nQuestion type: {script_state.current_question_type}")
+    status = 'running' if user.get('running') else 'stopped'
+    await update.message.reply_text(
+        f'Script is currently {status}.\nOffice IDs: {user.get('offices_ids') if user.get('offices_ids') else 'No ID selected'}\nQuestion type: {user.get('question_type')}'
+    )
 
 async def update_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    
-     if len(context.args) == 3:
-        new_webchsid2 = context.args[0]
-        new__csrf = context.args[1]
-        new_csrf_token = context.args[2]
+    user_id = update.effective_user.id
+    user = MongoUserManager.get_or_create_user(user_id, update.effective_user.username)
 
-        script_state.update_cookies_and_header(new_webchsid2, new__csrf, new_csrf_token)
+    if len(context.args) == 2:
+        cookies, csrf_header = context.args
+
+        MongoUserManager.update_credentials(user_id,cookies,csrf_header)
 
         await update.message.reply_text("Credentials updated successfully.")
-     else:
-        await update.message.reply_text("Please provide WEBCHSID2, _csrf, and csrf token for the header. Example: /update_credentials <WEBCHSID2> <_csrf> <csrf_token>")
+    else:
+        await update.message.reply_text(
+            "Please provide cookies and csrf header: /update_credentials <cookies> <csrf_token>"
+        )
 
 async def update_offices(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user = MongoUserManager.get_or_create_user(user_id, update.effective_user.username)
+
     if len(context.args) > 0:
         office_names = context.args
 
-        script_state.update_offices(office_names)
+        office_ids = [map_offices(name) for name in office_names]
 
-        if script_state.offices_ids:
-            await update.message.reply_text(f"Office IDs updated: {', '.join(map(str, script_state.offices_ids))}.")
-        else:
-            await update.message.reply_text("No valid office names were provided.")
+        MongoUserManager.update_offices(user_id, office_ids)
+
+        await update.message.reply_text(
+            f"Office IDs updated: {', '.join(map(str, office_ids))}." if office_ids else "No valid office names were provided."
+        )
     else:
-        await update.message.reply_text("Please provide at least one office name (4-digit number). Example: /update_offices 0541 6348 1247")
+        await update.message.reply_text(
+            "Please provide at least one office name (4-digit number). Example: /update_offices 0541 6348 1247"
+        )
 
 async def update_question_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user = MongoUserManager.get_or_create_user(user_id, update.effective_user.username)
+
     if len(context.args) == 1:
         question_type = context.args[0].lower()
+        if question_type not in QUESTION_MAPPING:
+            await update.message.reply_text("Invalid question type. Use 'practic' or 'theory'.")
+            return
 
-        try:
-            script_state.update_question_type(question_type)
-            await update.message.reply_text(f"Question type updated to '{question_type}'.")
-        except ValueError as e:
-            await update.message.reply_text(str(e))
+        MongoUserManager.update_question_type(user_id, question_type)
+        await update.message.reply_text(f"Question type updated to '{question_type}'.")
     else:
-        await update.message.reply_text("Please provide a valid question type. Example: /update_question_type practic or /update_question_type theory")
+        await update.message.reply_text(
+            "Please provide a valid question type. Example: /update_question_type practic or /update_question_type theory"
+        )
