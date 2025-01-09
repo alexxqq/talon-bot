@@ -1,5 +1,5 @@
 from utils import is_sunday_or_monday, get_headers, get_url_template
-from constants import QUESTION_MAPPING, WAIT_TIME, FETCH_FREETIMES
+from constants import QUESTION_MAPPING, WAIT_TIME, FETCH_FREETIMES, ITERATION_WAIT_TIME
 from datetime import datetime, timedelta
 from mongo import MongoUserManager
 from config import BOT_TOKEN
@@ -140,6 +140,7 @@ def process_data(chat_id: int) -> None:
                 valid_days += 1
 
             start_date += timedelta(days=1)
+            time.sleep(ITERATION_WAIT_TIME)
             if not MongoUserManager.get_running(chat_id):
                 return
         logger.info(f"Processing completed for user {chat_id}.")
